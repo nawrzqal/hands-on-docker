@@ -3,6 +3,7 @@ docker build -t feedback-node:volumes .
 docker run -d -p 3000:80 --name feedback-app -v feedback:/app/feedback -v "E:\coding\docker\hands-on-docker:/app:ro" -v /app/temp -v /app/node_modules feedback-node
 
 --------------------------------
+docker container ls
 docker stop container-Name
 docker rm container-Name
 docker rmi image-Name:tag
@@ -20,3 +21,12 @@ docker volume create feedback-files
 docker volume inspect feedback
 docker volume rm feedback-files
 docker volume prune
+--------------------------------
+1- docker network create favorites-net
+    docker network ls
+2- docker run -d --name mongodb --network favorites-net mongo (docker pull mongo:latest)
+3- in server code:
+    mongoose.connect('mongodb://mongodb:27017/favorites');
+4- docker build -t favorites-node .
+   docker run -d --name favorites -p 3000:3000 --network favorites-net favorites-node
+
