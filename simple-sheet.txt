@@ -3,13 +3,14 @@ docker build -t feedback-node:volumes .
 docker run -d -p 3000:80 --name feedback-app -v feedback:/app/feedback -v "E:\coding\docker\hands-on-docker:/app:ro" -v /app/temp -v /app/node_modules feedback-node
 
 --------------------------------
-docker container ls
+
 docker stop container-Name
 docker rm container-Name
 docker rmi image-Name:tag
 
 // show all running containers
-docker ps
+docker container ls
+// show al local images
 docker image ls
 
 docker logs <container-name-or-id>
