@@ -46,6 +46,7 @@ Also view the official docs for a full, detailed documentation of ALL commands a
    - `-a` : List all containers - including stopped ones `docker container ls`
 - `docker images` : List **all** **locally** stored **images** and `docker image ls` does the same
 
+- `docker stop CONTAINER_name` : **stop a running container** with name CONTAINER_name (you can also use the container id) you can write more than one container name
 - `docker rm CONTAINER_name` : **Remove** a **container** with name CONTAINER_name (you can also use the container id) you can write more than one container name
 - `docker rmi IMAGE` : **Remove** an **image** by name / id
 - `docker container prune` : **Remove** **all** stopped **containers**
@@ -56,6 +57,9 @@ Also view the official docs for a full, detailed documentation of ALL commands a
 - `docker pull IMAGE` : **Pull** (download) an **image** from **DockerHub** (or another registry) - this is done automatically if you just `docker run IMAGE` and the image wasn't pulled before
 - `docker logs <container-name-or-id>` : displays the **logs (output) of a running or stopped Docker container**. This is useful for debugging, checking errors, or monitoring what's happening inside the container.
 
+
+#
+#
 # Data & Volumes
 
 **Images are read-only** - once they're created**, they can't change** (you have to rebuild them to update them).
@@ -121,7 +125,8 @@ In general, Bind Mounts are a **great tool during development** - they're **not 
 ```bash
 docker run -d -p 3000:80 --name feedback-app -v feedback:/app/feedback -v "E:\coding\docker\hands-on-docker:/app:ro" -v /app/temp -v /app/node_modules feedback-node
 ```
-
+#
+#
 # Networks / Requests
 
 In many application, you'll need **more than one container** - for two main reasons:
@@ -209,3 +214,116 @@ Now, you can **simply** **use** the **Container** **names** to let them **commun
 
 4. `docker build -t favorites-node .`
 5.   `docker run -d --name favorites -p 3000:3000 --network favorites-net favorites-node`
+
+#
+#
+# Docker Compose
+
+## What is Docker Compose?
+
+Docker Compose is an **additional tool**, offered by the Docker ecosystem, which helps with **orchestration / management of multiple Containers**. It can also be used for single Containers to simplify building and launching
+
+## Why Use Docker Compose?
+
+Without Docker Compose, you need to run many commands manually:
+
+```bash
+docker network create goals-net
+
+docker run --name mongodb \
+  -e MONGO_INITDB_ROOT_USERNAME=max \
+  -e MONGO_INITDB_ROOT_PASSWORD=secret \
+  -v data:/data/db \
+  --rm \
+  -d \
+  --network goals-net \
+  Mongo
+
+docker build -t goals-node .
+
+docker run --name goals-backend \
+  -e MONGODB_USERNAME=max \
+  -e MONGODB_PASSWORD=secret \
+  -v logs:/app/logs \
+  -v /Users/maximilianschwarzmuller/development/teaching/udemy/docker-complete/backend:/app \
+  -v /app/node_modules \
+  --rm \
+  -d \
+  --network goals-net \
+  -p 80:80 \
+  goals-node
+
+docker stop mongodb goals-backend goals-frontend
+```
+
+And you have to run (most of) these commands whenever you change something in your code or you need to bring up your Containers again for some other reason.
+With Docker **Compose**, this gets much **easier**.
+You can put your **Container configuration** into a `docker compose.yaml` **file** and then use just one command to **bring up** the entire environment:  `docker-compose up`.
+
+## Docker Compose Files
+A docker-compose.yaml file looks like this:
+
+```
+services: # "Services" are in the end the Containers that your app needs
+  mongodb: 
+    image: 'mongo'
+    volumes: 
+      - data:/data/db
+    # environment:    # define environment variables directly
+    #   MONGO_INITDB_ROOT_USERNAME: max
+    #   MONGO_INITDB_ROOT_PASSWORD: secret
+      # - MONGO_INITDB_ROOT_USERNAME=max
+
+    # Using env_file is cleaner for sensitive data as it's not in the compose file
+    env_file: 
+      - ./env/mongo.env
+  backend: # Define the path to your Dockerfile for the image of this container
+    build: ./backend
+	# Builds the backend container using the Dockerfile in ./backend directory
+    # build:
+    #   context: ./backend
+    #   dockerfile: Dockerfile
+    #   args:
+    #     some-arg: 1
+    ports:
+      - '80:80'
+    volumes: # Define any required volumes / bind mo
+      - logs:/app/logs
+      - ./backend:/app
+      - /app/node_modules
+    env_file: 
+      - ./env/backend.env
+    depends_on:
+      - mongodb
+  frontend:
+    build: ./frontend
+    ports: 
+      - '3000:3000'
+    volumes: 
+      - ./frontend/src:/app/src
+    stdin_open: true
+    tty: true
+    depends_on: 
+      - backend
+# Define named volumes that persist data outside container lifecycle
+volumes: 
+  data:
+  logs:
+```
+
+You can conveniently edit this file at any time and you just have a short, simple command which you can use to bring up your Containers:
+-	`Docker compose up`
+
+You can find the full (possibly intimidating - you'll only need a small set of the available options though) list of configurations here: https://docs.docker.com/compose/compose-file/
+
+**Important to keep in mind**: When using Docker Compose, you **automatically get a Network for all your Containers** - so you don't need to add your own Network unless you need multiple Networks!
+
+## Docker Compose Key Commands
+
+There are two key commands:
+-	Docker compose up: Start all containers / services mentioned in the Docker Compose file
+      -	-d : Start in detached mode
+      -	–build : Force Docker Compose to re-evaluate / rebuild all images (otherwise, it only does that if an image is missing)
+-	Docker compose down: Stop and remove all containers / services
+      -	-v : Remove all Volumes used for the Containers - otherwise they stay around, even if the Containers are removed
+
