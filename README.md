@@ -263,7 +263,7 @@ You can put your **Container configuration** into a `docker compose.yaml` **file
 ## Docker Compose Files
 A docker-compose.yaml file looks like this:
 
-```
+```yaml
 services: # "Services" are in the end the Containers that your app needs
   mongodb: 
     image: 'mongo'
